@@ -186,7 +186,6 @@
             const loading = document.getElementById('loading');
             
             // Показываем блоки с числами и суммой
-            numbersDiv.style.display = 'block';
             resultDiv.style.display = 'block';
             
             const img = new Image();
@@ -212,8 +211,6 @@
                 // Обводим числа после их обработки с улучшенным стилем
                 drawNumbersWithColor(ctx);
                 
-                resultDiv.textContent = `Сумма: ${sum}`;
-
                 // Добавляем обработчик клика на канвас
                 canvas.addEventListener('click', handleCanvasClick);
             } catch (error) {
@@ -295,12 +292,11 @@
             
             // Фильтруем только числа с синим цветом
             const blueNumbers = foundNumbersWithColors.filter(item => item.color === 'blue');
+            numbersDiv.style.display = blueNumbers.some(item => item.value) ? 'block' : 'none';
             
             if (blueNumbers.length > 0) {
                 // Формируем строку с числами для ввода
-                const formattedNumbers = blueNumbers.map(num => 
-                    num.value >= 0 ? `+${num.value}` : `${num.value}`
-                ).join('');
+                const formattedNumbers = blueNumbers.map((num, i) => i > 0 ? `+${num.value}` : `${num.value}`).join('');
                 
                 numbersDiv.textContent = formattedNumbers;
                 
@@ -358,16 +354,6 @@
                     });
                 }
             });
-
-            const numbersDiv = document.getElementById('numbers');
-            if (foundNumbers.length > 0) {
-                const formattedNumbers = foundNumbers.map(num => 
-                    num.value >= 0 ? `+${num.value}` : `${num.value}`
-                ).join('');
-                numbersDiv.textContent = formattedNumbers;
-            } else {
-                numbersDiv.textContent = 'Числа не найдены';
-            }
             
             const totalSum = foundNumbers.reduce((sum, num) => sum + num.value, 0);
             return Number(totalSum.toFixed(2));
