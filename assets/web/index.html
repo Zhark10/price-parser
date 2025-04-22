@@ -163,6 +163,8 @@
         }
 
         let worker;
+        // Массив для хранения чисел и их координат с информацией о цвете
+        let foundNumbersWithColors = [];
         
         async function initTesseract() {
             worker = await Tesseract.createWorker({
@@ -203,34 +205,83 @@
             try {
                 const { data } = await worker.recognize(canvas);
                 
-                // Создаем массив для хранения чисел и их координат
-                const foundNumbers = [];
-                const sum = extractAndSumNumbers(data.text, data.words, foundNumbers);
+                // Очищаем предыдущие найденные числа
+                foundNumbersWithColors = [];
+                const sum = extractAndSumNumbers(data.text, data.words, foundNumbersWithColors);
                 
                 // Обводим числа после их обработки с улучшенным стилем
-                foundNumbers.forEach(({ bbox }) => {
-                    const { x0, y0, x1, y1 } = bbox;
-                    const padding = 4;
-                    
-                    ctx.strokeStyle = 'red';
-                    ctx.lineWidth = 8;
-                    ctx.beginPath();
-                    ctx.roundRect(
-                        x0 - padding, 
-                        y0 - padding, 
-                        x1 - x0 + padding * 2, 
-                        y1 - y0 + padding * 2, 
-                        8
-                    );
-                    ctx.stroke();
-                });
+                drawNumbersWithColor(ctx);
                 
                 resultDiv.textContent = `Сумма: ${sum}`;
+
+                // Добавляем обработчик клика на канвас
+                canvas.addEventListener('click', handleCanvasClick);
             } catch (error) {
                 resultDiv.textContent = 'Ошибка при обработке изображения';
                 console.error('Ошибка распознавания:', error);
             } finally {
                 loading.style.display = 'none';
+            }
+        }
+
+        // Функция отрисовки всех чисел с их текущим цветом
+        function drawNumbersWithColor(ctx) {
+            // Очищаем только контуры, перерисовываем изображение
+            const canvas = ctx.canvas;
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            foundNumbersWithColors.forEach((item) => {
+                const { bbox, color } = item;
+                const { x0, y0, x1, y1 } = bbox;
+                const padding = 4;
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.roundRect(
+                    x0 - padding, 
+                    y0 - padding, 
+                    x1 - x0 + padding * 2, 
+                    y1 - y0 + padding * 2, 
+                    8
+                );
+                ctx.stroke();
+            });
+        }
+
+        // Обработчик клика на канвас
+        function handleCanvasClick(e) {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Получаем координаты клика относительно канваса
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            
+            // Проверяем, попал ли клик на какое-либо число
+            for (let i = 0; i < foundNumbersWithColors.length; i++) {
+                const item = foundNumbersWithColors[i];
+                const { bbox } = item;
+                const { x0, y0, x1, y1 } = bbox;
+                const padding = 4;
+                
+                // Проверяем, входят ли координаты клика в область числа
+                if (
+                    x >= (x0 - padding) && 
+                    x <= (x1 + padding) && 
+                    y >= (y0 - padding) && 
+                    y <= (y1 + padding)
+                ) {
+                    // Меняем цвет с красного на синий или наоборот
+                    item.color = item.color === 'red' ? 'blue' : 'red';
+                    
+                    // Перерисовываем все числа
+                    drawNumbersWithColor(ctx);
+                    break;
+                }
             }
         }
 
@@ -272,7 +323,8 @@
                         if (!isNaN(num)) {
                             foundNumbers.push({
                                 value: num,
-                                bbox: word.bbox
+                                bbox: word.bbox,
+                                color: 'red' // Изначально все числа красные
                             });
                         }
                     });
