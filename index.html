@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализатор чисел с фото</title>
+    <link rel="manifest" href="manifest.json">
+    <script src='https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js'></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #numbers, #result {
+            width: 100%;
+            font-size: 18px;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            outline: none;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+            display: none;
+        }
+
+        #numbers:focus {
+            border-color: #007AFF;
+        }
+        #canvas {
+            width: 100%;
+            border-radius: 12px;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        #uploadButton {
+            background-color: #007AFF;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        #uploadButton:active {
+            transform: scale(0.98);
+            background-color: #0056b3;
+        }
+
+        #result {
+            font-size: 24px;
+            font-weight: 600;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            text-align: center;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #666;
+            margin: 10px 0;
+        }
+
+        .upload-area {
+            width: 100%;
+            max-width: 500px;
+            height: 200px;
+            border: 2px dashed #007AFF;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background-color: rgba(0, 122, 255, 0.05);
+            transition: all 0.2s;
+            margin: 20px 0;
+            position: relative; /* Добавляем позиционирование */
+        }
+
+        .upload-area p {
+            color: #007AFF;
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            padding: 0 20px;
+            pointer-events: none; /* Отключаем события для текста */
+        }
+
+        .upload-area:hover {
+            background-color: rgba(0, 122, 255, 0.1);
+            border-color: #0056b3;
+        }
+
+        .upload-area p {
+            color: #007AFF;
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        @media (hover: hover) {
+            #uploadButton:hover {
+                background-color: #0056b3;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <input type="file" id="fileInput" accept="image/*">
+        <div id="loading" class="loading">Обработка изображения...</div>
+        <canvas id="canvas"></canvas>
+        <div id="numbers" contenteditable="true"></div>
+        <div id="result">Сумма: 0</div>
+        <div class="upload-area" id="uploadArea">
+            <p>Нажмите, чтобы сделать фото или загрузить из галереи</p>
+        </div>
+    </div>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => console.log('ServiceWorker зарегистрирован'))
+                    .catch(err => console.log('Ошибка регистрации ServiceWorker:', err));
+            });
+        }
+
+        let worker;
+        
+        async function initTesseract() {
+            worker = await Tesseract.createWorker({
+                logger: m => {
+                    const loading = document.getElementById('loading');
+                    loading.style.display = 'none';
+                    loading.textContent = m.status;
+                }
+            });
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+        }
+
+        async function processImage(file) {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const resultDiv = document.getElementById('result');
+            const numbersDiv = document.getElementById('numbers');
+            const loading = document.getElementById('loading');
+            
+            // Показываем блоки с числами и суммой
+            numbersDiv.style.display = 'block';
+            resultDiv.style.display = 'block';
+            
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            
+            await new Promise(resolve => {
+                img.onload = resolve;
+            });
+            
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+            canvas.style.display = 'block';
+            loading.style.display = 'block';
+            
+            try {
+                const { data } = await worker.recognize(canvas);
+                
+                // Создаем массив для хранения чисел и их координат
+                const foundNumbers = [];
+                const sum = extractAndSumNumbers(data.text, data.words, foundNumbers);
+                
+                // Обводим числа после их обработки с улучшенным стилем
+                foundNumbers.forEach(({ bbox }) => {
+                    const { x0, y0, x1, y1 } = bbox;
+                    const padding = 4;
+                    
+                    ctx.strokeStyle = 'red';
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.roundRect(
+                        x0 - padding, 
+                        y0 - padding, 
+                        x1 - x0 + padding * 2, 
+                        y1 - y0 + padding * 2, 
+                        8
+                    );
+                    ctx.stroke();
+                });
+                
+                resultDiv.textContent = `Сумма: ${sum}`;
+            } catch (error) {
+                resultDiv.textContent = 'Ошибка при обработке изображения';
+                console.error('Ошибка распознавания:', error);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function extractAndSumNumbers(text, words, foundNumbers) {
+            let currentNumber = '';
+            let currentBBox = null;
+            
+            // Предварительная обработка для объединения близких слов
+            const mergedWords = [];
+            for (let i = 0; i < words.length; i++) {
+                const word = words[i];
+                const nextWord = words[i + 1];
+                
+                if (nextWord && Math.abs(word.bbox.x1 - nextWord.bbox.x0) < 30) {
+                    word.text += nextWord.text;
+                    word.bbox.x1 = nextWord.bbox.x1;
+                    i++; // Пропускаем следующее слово, так как мы его уже объединили
+                }
+                mergedWords.push(word);
+            }
+            
+            mergedWords.forEach((word, index) => {
+                // Проверяем наличие двух последовательных букв (кириллица и латиница)
+                if (/[а-яА-Яa-zA-Z]{2}/.test(word.text)) {
+                    return; // Пропускаем слова с последовательными буквами
+                }
+                
+                // Улучшенное регулярное выражение для поиска чисел
+                const matches = word.text.match(/[+-]?\d+[,\s]?\d*\.?\d*/g);
+                
+                if (matches) {
+                    matches.forEach(match => {
+                        const cleanNumber = match
+                            .replace(/\s/g, '')
+                            .replace(/,/g, '.')
+                            .replace(/\.(?=.*\.)/g, ''); // Оставляем только последнюю точку
+                        
+                        const num = parseFloat(cleanNumber);
+                        if (!isNaN(num)) {
+                            foundNumbers.push({
+                                value: num,
+                                bbox: word.bbox
+                            });
+                        }
+                    });
+                }
+            });
+
+            const numbersDiv = document.getElementById('numbers');
+            if (foundNumbers.length > 0) {
+                const formattedNumbers = foundNumbers.map(num => 
+                    num.value >= 0 ? `+${num.value}` : `${num.value}`
+                ).join('');
+                numbersDiv.textContent = formattedNumbers;
+            } else {
+                numbersDiv.textContent = 'Числа не найдены';
+            }
+            
+            const totalSum = foundNumbers.reduce((sum, num) => sum + num.value, 0);
+            return Number(totalSum.toFixed(2));
+        }
+
+        async function init() {
+            await initTesseract();
+
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const numbersDiv = document.getElementById('numbers');
+            const resultDiv = document.getElementById('result');
+
+            // Добавляем обработчик для области загрузки
+            uploadArea.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Добавляем обработчик для drag&drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = 'rgba(0, 122, 255, 0.2)';
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.backgroundColor = 'rgba(0, 122, 255, 0.05)';
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.backgroundColor = 'rgba(0, 122, 255, 0.05)';
+                
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    processImage(e.dataTransfer.files[0]);
+                }
+            });
+
+            // Обработчик изменения текста
+            numbersDiv.addEventListener('input', () => {
+                const text = numbersDiv.textContent;
+                const numbers = text.replace('Числа: ', '')
+                    .replace(/\s+/g, '') // Удаляем все пробелы
+                    .split(/([+-])/) // Разделяем по знакам + и -
+                    .filter(n => n) // Удаляем пустые строки
+                    .reduce((acc, curr, i, arr) => {
+                        // Если текущий элемент это знак
+                        if (curr === '+' || curr === '-') {
+                            // Добавляем знак к следующему числу
+                            arr[i + 1] = curr + arr[i + 1];
+                            return acc;
+                        }
+                        // Если это число, добавляем его в аккумулятор
+                        if (!isNaN(parseFloat(curr))) {
+                            acc.push(parseFloat(curr));
+                        }
+                        return acc;
+                    }, []);
+                
+                const sum = numbers.reduce((acc, curr) => acc + curr, 0);
+                resultDiv.textContent = `Сумма: ${Number(sum.toFixed(2))}`;
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    processImage(e.target.files[0]);
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
