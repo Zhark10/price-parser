@@ -464,6 +464,50 @@
 </body>
 </html>
 <style>
+    :root {
+        /* Светлая тема */
+        --primary-color-light: #6366F1;
+        --primary-hover-light: #4F46E5;
+        --background-light: #F9FAFB;
+        --card-bg-light: #FFFFFF;
+        --text-primary-light: #1F2937;
+        --text-secondary-light: #6B7280;
+        --border-color-light: #E5E7EB;
+        
+        /* Темная тема в стиле калькулятора Apple */
+        --primary-color-dark: #FF9F0A;
+        --primary-hover-dark: #FFB340;
+        --background-dark: #000000;
+        --card-bg-dark: #1C1C1E;
+        --text-primary-dark: #FFFFFF;
+        --text-secondary-dark: #98989F;
+        --border-color-dark: #2C2C2E;
+        
+        /* Активные переменные (изначально светлая тема) */
+        --primary-color: var(--primary-color-light);
+        --primary-hover: var(--primary-hover-light);
+        --background: var(--background-light);
+        --card-bg: var(--card-bg-light);
+        --text-primary: var(--text-primary-light);
+        --text-secondary: var(--text-secondary-light);
+        --border-color: var(--border-color-light);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --radius: 16px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --primary-color: var(--primary-color-dark);
+            --primary-hover: var(--primary-hover-dark);
+            --background: var(--background-dark);
+            --card-bg: var(--card-bg-dark);
+            --text-primary: var(--text-primary-dark);
+            --text-secondary: var(--text-secondary-dark);
+            --border-color: var(--border-color-dark);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+        }
+    }
+
     .sticky-header {
         position: sticky;
         top: 0;
@@ -482,7 +526,7 @@
     .operation-button {
         padding: 16px;
         border-radius: var(--radius);
-        border: 1px solid var(--border-color);
+        border: none;
         background: var(--card-bg);
         color: var(--text-primary);
         font-size: 24px;
@@ -496,13 +540,41 @@
 
     .operation-button:hover {
         background: var(--primary-color);
-        color: white;
+        color: var(--background);
         transform: translateY(-2px);
     }
 
     .operation-button.active {
-        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
-        color: white;
-        border: none;
+        background: var(--primary-color);
+        color: var(--background);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .operation-button {
+            background: #333333;
+        }
+
+        .operation-button:hover {
+            background: var(--primary-color);
+            color: var(--background);
+        }
+
+        .operation-button.active {
+            background: var(--primary-color);
+            color: var(--background);
+        }
+
+        #result {
+            background: var(--primary-color);
+        }
+
+        .upload-area {
+            border-color: var(--primary-color);
+            background: var(--card-bg);
+        }
+
+        .upload-area:hover {
+            background: rgba(255, 159, 10, 0.1);
+        }
     }
 </style>
