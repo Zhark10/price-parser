@@ -280,8 +280,36 @@
                     
                     // Перерисовываем все числа
                     drawNumbersWithColor(ctx);
+                    
+                    // Обновляем input и сумму, показывая только синие числа
+                    updateInputAndSum();
                     break;
                 }
+            }
+        }
+
+        // Новая функция для обновления ввода и суммы на основе синих чисел
+        function updateInputAndSum() {
+            const numbersDiv = document.getElementById('numbers');
+            const resultDiv = document.getElementById('result');
+            
+            // Фильтруем только числа с синим цветом
+            const blueNumbers = foundNumbersWithColors.filter(item => item.color === 'blue');
+            
+            if (blueNumbers.length > 0) {
+                // Формируем строку с числами для ввода
+                const formattedNumbers = blueNumbers.map(num => 
+                    num.value >= 0 ? `+${num.value}` : `${num.value}`
+                ).join('');
+                
+                numbersDiv.textContent = formattedNumbers;
+                
+                // Вычисляем сумму только синих чисел
+                const blueSum = blueNumbers.reduce((sum, num) => sum + num.value, 0);
+                resultDiv.textContent = `Сумма: ${Number(blueSum.toFixed(2))}`;
+            } else {
+                numbersDiv.textContent = '';
+                resultDiv.textContent = 'Сумма: 0';
             }
         }
 
@@ -377,7 +405,7 @@
                 }
             });
 
-            // Обработчик изменения текста
+            // Обновляем обработчик изменения текста, чтобы он работал только с синими числами
             numbersDiv.addEventListener('input', () => {
                 const text = numbersDiv.textContent;
                 const numbers = text.replace('Числа: ', '')
@@ -400,6 +428,9 @@
                 
                 const sum = numbers.reduce((acc, curr) => acc + curr, 0);
                 resultDiv.textContent = `Сумма: ${Number(sum.toFixed(2))}`;
+                
+                // Обновляем цвета чисел, если пользователь изменил ввод вручную
+                // Эта функция может потребовать дополнительной логики в зависимости от требований
             });
 
             fileInput.addEventListener('change', (e) => {
