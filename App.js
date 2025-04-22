@@ -52,31 +52,6 @@ export default function App() {
           const { nativeEvent } = syntheticEvent;
           console.warn('WebView ошибка:', nativeEvent);
         }}
-        injectedJavaScript={`
-          // Добавляем обработчик после полной загрузки страницы
-          document.addEventListener('DOMContentLoaded', function() {
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('fileInput');
-            
-            if (uploadArea && fileInput) {
-              uploadArea.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                fileInput.click();
-              }, false);
-            }
-          });
-
-          // Добавляем обработчик для загрузки файла
-          const fileInput = document.getElementById('fileInput');
-          if (fileInput) {
-            fileInput.addEventListener('change', function(e) {
-              if (this.files && this.files[0]) {
-                processImage(this.files[0]);
-              }
-            });
-          }
-        `}
         onMessage={(event) => {
           console.log('Сообщение от WebView:', event.nativeEvent.data);
         }}
