@@ -63,7 +63,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#000',
     marginTop: Platform.OS === 'android' ? 25 : 0,
   },
   webview: {
