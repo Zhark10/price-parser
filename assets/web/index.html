@@ -150,10 +150,21 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        .operation-button:active {
-            transform: scale(0.9);
+        .operation-button.active {
             background: white;
             color: var(--primary-color);
+            box-shadow: 0 0 20px var(--primary-color);
+            transform: scale(1.1);
+            position: relative;
+            z-index: 2;
+        }
+
+        .operation-button:not(.active) {
+            opacity: 0.8;
+        }
+
+        .operation-button:active {
+            transform: scale(0.95);
         }
 
         .canvas-container {
@@ -456,117 +467,162 @@
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Получаем координаты клика относительно канваса
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             const x = (e.clientX - rect.left) * scaleX;
             const y = (e.clientY - rect.top) * scaleY;
             
-            // Проверяем, попал ли клик на какое-либо число
             for (let i = 0; i < foundNumbersWithColors.length; i++) {
                 const item = foundNumbersWithColors[i];
                 const { bbox } = item;
                 const { x0, y0, x1, y1 } = bbox;
                 const padding = 4;
                 
-                // Проверяем, входят ли координаты клика в область числа
                 if (
                     x >= (x0 - padding) && 
                     x <= (x1 + padding) && 
                     y >= (y0 - padding) && 
                     y <= (y1 + padding)
                 ) {
-                    // Меняем цвет с красного на синий или наоборот
-                    item.color = item.color === INACTIVE_NUMBER_COLOR ? ACTIVE_NUMBER_COLOR : INACTIVE_NUMBER_COLOR;
+                    if (item.color === INACTIVE_NUMBER_COLOR) {
+                        // При активации числа
+                        item.color = ACTIVE_NUMBER_COLOR;
+                        item.activationTime = Date.now();
+                        item.operationBefore = currentOperation;
+                    } else {
+                        // При деактивации числа
+                        item.color = INACTIVE_NUMBER_COLOR;
+                        delete item.activationTime;
+                        delete item.operationBefore;
+                    }
                     
-                    // Перерисовываем все числа
                     drawNumbersWithColor(ctx);
-                    
-                    // Обновляем input и сумму, показывая только синие числа
                     updateInputAndSum(item);
                     break;
                 }
             }
         }
 
-        // Новая функция для обновления ввода и суммы на основе синих чисел
-        function setOperation(operation) {
-            currentOperation = operation;
-            // Обновляем стили кнопок
-            document.querySelectorAll('.operation-button').forEach(button => {
-                button.classList.remove('active');
-                if (button.dataset.operation === operation) {
-                    button.classList.add('active');
-                }
-            });
-            
-            // Пересчитываем результат с новой операцией
-            const numbersDiv = document.getElementById('numbers');
-            if (numbersDiv.textContent) {
-                updateResult();
-            }
-        }
-
-        function updateInputAndSum(_item) {
+        function updateInputAndSum(item) {
             const numbersDiv = document.getElementById('numbers');
             const resultDiv = document.getElementById('result');
             const stickyHeader = document.querySelector('.sticky-header');
             
-            // Фильтруем только активные числа
-            const activeNumbers = _item.color === ACTIVE_NUMBER_COLOR 
-                ? [...foundNumbersWithColors.filter(item => item.color === ACTIVE_NUMBER_COLOR && item.value !== _item.value), _item] 
-                : foundNumbersWithColors.filter(item => item.color === ACTIVE_NUMBER_COLOR);
+            // Получаем активные числа в порядке их активации
+            const activeNumbers = foundNumbersWithColors
+                .filter(num => num.color === ACTIVE_NUMBER_COLOR)
+                .sort((a, b) => (a.activationTime || 0) - (b.activationTime || 0));
             
-            // Показываем/скрываем sticky-header в зависимости от наличия активных чисел
             stickyHeader.style.display = activeNumbers.length > 0 ? 'flex' : 'none';
-            
-            numbersDiv.style.display = activeNumbers.some(item => item.value) ? 'block' : 'none';
+            numbersDiv.style.display = activeNumbers.length > 0 ? 'block' : 'none';
             
             if (activeNumbers.length > 0) {
-                // Формируем строку с числами и операторами
-                const formattedNumbers = activeNumbers.map((num, i) => {
-                    if (i === 0) return num.value;
-                    return `${currentOperation}${num.value}`;
+                // Формируем выражение, сохраняя порядок и операции
+                const formattedExpression = activeNumbers.map((num, index) => {
+                    if (index === 0) return num.value;
+                    
+                    const operation = num.operationBefore || '+';
+                    const opSymbol = operation === '*' ? '×' : operation === '/' ? '÷' : operation;
+                    const value = operation === '-' ? `(${num.value})` : num.value;
+                    
+                    return `${opSymbol}${value}`;
                 }).join('');
                 
-                numbersDiv.textContent = formattedNumbers;
+                numbersDiv.textContent = formattedExpression;
                 
-                // Вычисляем результат
-                updateResult();
+                // Вычисляем результат в порядке активации
+                let result = parseFloat(activeNumbers[0].value);
+                for (let i = 1; i < activeNumbers.length; i++) {
+                    const num = activeNumbers[i];
+                    const operation = num.operationBefore || '+';
+                    const value = parseFloat(num.value);
+                    
+                    switch (operation) {
+                        case '+': result += value; break;
+                        case '-': result -= value; break;
+                        case '*': result *= value; break;
+                        case '/': result = value !== 0 ? result / value : result; break;
+                    }
+                }
+                
+                resultDiv.textContent = `= ${Number.isInteger(result) ? result : result.toFixed(2)}`;
             } else {
                 numbersDiv.textContent = '';
                 resultDiv.textContent = '= 0';
             }
         }
 
-        function updateResult() {
+        function setOperation(operation) {
+            // Преобразуем символы операций для корректного сравнения
+            const operationMap = {
+                '×': '*',
+                '÷': '/',
+                '*': '*',
+                '/': '/',
+                '+': '+',
+                '-': '-'
+            };
+            
+            currentOperation = operationMap[operation] || operation;
+            
+            // Обновляем стили кнопок, учитывая все возможные символы операций
+            document.querySelectorAll('.operation-button').forEach(button => {
+                const buttonOp = button.dataset.operation;
+                const isActive = buttonOp === currentOperation || 
+                               (buttonOp === '*' && operation === '×') ||
+                               (buttonOp === '/' && operation === '÷');
+                               
+                button.classList.toggle('active', isActive);
+            });
+            
+            // Обновляем отображение и пересчитываем результат
+            updateInputAndSum();
+        }
+
+        function updateInputAndSum() {
             const numbersDiv = document.getElementById('numbers');
             const resultDiv = document.getElementById('result');
-            const numbers = foundNumbersWithColors
+            const stickyHeader = document.querySelector('.sticky-header');
+            
+            const activeNumbers = foundNumbersWithColors
                 .filter(item => item.color === ACTIVE_NUMBER_COLOR)
-                .map(item => item.value);
+                .sort((a, b) => a.activationTime - b.activationTime);
             
-            let result = numbers[0] || 0;
+            stickyHeader.style.display = activeNumbers.length > 0 ? 'flex' : 'none';
+            numbersDiv.style.display = activeNumbers.length > 0 ? 'block' : 'none';
             
-            for (let i = 1; i < numbers.length; i++) {
-                switch (currentOperation) {
-                    case '+':
-                        result += numbers[i];
-                        break;
-                    case '-':
-                        result -= numbers[i];
-                        break;
-                    case '*':
-                        result *= numbers[i];
-                        break;
-                    case '/':
-                        result /= numbers[i];
-                        break;
+            if (activeNumbers.length > 0) {
+                // Формируем строку выражения с учетом операции перед каждым числом
+                const formattedExpression = activeNumbers.map((num, i) => {
+                    if (i === 0) return num.value;
+                    const operation = num.operationBefore || '+';
+                    const opSymbol = operation === '*' ? '×' : operation === '/' ? '÷' : operation;
+                    return `${opSymbol}${num.value}`;
+                }).join('');
+                
+                numbersDiv.textContent = formattedExpression;
+                
+                // Вычисляем результат
+                let result = parseFloat(activeNumbers[0].value);
+                for (let i = 1; i < activeNumbers.length; i++) {
+                    const num = activeNumbers[i];
+                    const operation = num.operationBefore || '+';
+                    const value = parseFloat(num.value);
+                    
+                    switch (operation) {
+                        case '+': result += value; break;
+                        case '-': result -= value; break;
+                        case '*': result *= value; break;
+                        case '/': result = value !== 0 ? result / value : result; break;
+                    }
                 }
+                
+                resultDiv.textContent = `= ${Number.isInteger(result) ? result : result.toFixed(2)}`;
+            } else {
+                numbersDiv.textContent = '';
+                resultDiv.textContent = '= 0';
             }
-            
-            resultDiv.textContent = `= ${Number(result.toFixed(2))}`;
         }
 
         function extractAndSumNumbers(text, words, foundNumbers) {
