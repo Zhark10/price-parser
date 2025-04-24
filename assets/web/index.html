@@ -159,12 +159,23 @@
             z-index: 2;
         }
 
-        .operation-button:not(.active) {
-            opacity: 0.8;
-        }
-
         .operation-button:active {
             transform: scale(0.95);
+        }
+
+        .operation-button.clear-button {
+            background: #6d6b6b;
+            color: white;
+            font-size: 24px;
+            font-weight: 500;
+            position: fixed;
+            bottom: 100px;
+            left: 28px;
+            right: 0;
+            padding: 16px;
+            z-index: 100;
+            display: flex;
+            margin: 0;
         }
 
         .canvas-container {
@@ -199,6 +210,9 @@
             font-size: 1.25rem;
             line-height: 1.5;
             color: var(--text-primary);
+            word-wrap: break-word;
+            word-break: break-all;
+            max-width: calc(100vw - 32px);
         }
 
         #numbers:focus {
@@ -290,6 +304,7 @@
             <div class="upload-icon">📸</div>
             <p>Нажмите, чтобы сделать фото или загрузить из галереи</p>
         </div>
+        <button class="operation-button clear-button" onclick="clearAll()">AC</button>
         <div class="footer">
             <button class="operation-button active" data-operation="+" onclick="setOperation('+')">+</button>
             <button class="operation-button" data-operation="-" onclick="setOperation('-')">−</button>
@@ -524,9 +539,8 @@
                     
                     const operation = num.operationBefore || '+';
                     const opSymbol = operation === '*' ? '×' : operation === '/' ? '÷' : operation;
-                    const value = operation === '-' ? `(${num.value})` : num.value;
                     
-                    return `${opSymbol}${value}`;
+                    return `${opSymbol}${num.value}`;
                 }).join('');
                 
                 numbersDiv.textContent = formattedExpression;
@@ -738,6 +752,39 @@
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files[0]) {
                     processImage(e.target.files[0]);
+                }
+            });
+        }
+
+        function clearAll() {
+            // Сбрасываем все активные числа
+            foundNumbersWithColors.forEach(item => {
+                item.color = INACTIVE_NUMBER_COLOR;
+                delete item.activationTime;
+                delete item.operationBefore;
+            });
+            
+            // Перерисовываем канвас
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            drawNumbersWithColor(ctx);
+            
+            // Очищаем формулу и результат
+            const numbersDiv = document.getElementById('numbers');
+            const resultDiv = document.getElementById('result');
+            const stickyHeader = document.querySelector('.sticky-header');
+            
+            numbersDiv.textContent = '';
+            resultDiv.textContent = '= 0';
+            resultDiv.style.fontSize = '2.5rem';
+            stickyHeader.style.display = 'none';
+            
+            // Возвращаем операцию по умолчанию
+            currentOperation = '+';
+            document.querySelectorAll('.operation-button').forEach(button => {
+                button.classList.remove('active');
+                if (button.dataset.operation === '+') {
+                    button.classList.add('active');
                 }
             });
         }
