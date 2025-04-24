@@ -78,6 +78,36 @@
             z-index: 1;
         }
 
+        .calculator-icon {
+            display: flex;
+            position: fixed;
+            z-index: 101;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            user-select: none;
+            -webkit-user-select: none;
+            margin-left: 8px;
+            max-width: min-content;
+        }
+
+        .calculator-icon .dots {
+            color: var(--primary-color);
+            font-size: 24px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .calculator-icon .lines {
+            color: var(--primary-color);
+            font-size: 38px;
+            line-height: 1;
+            font-weight: 200;
+            position: relative;
+            top: -2px;
+            right: 8px;
+        }
+
         .sticky-header {
             position: fixed;
             top: 0;
@@ -89,7 +119,7 @@
                 rgba(217, 217, 234, 0.2) 60%,
                 rgba(217, 217, 234, 0) 100%
             );
-            padding: 16px;
+            padding: 48px 16px 16px;
             z-index: 100;
             display: none;  /* По умолчанию скрыт */
             flex-direction: column;
@@ -268,7 +298,7 @@
         .upload-area p {
             color: var(--primary-color);
             font-size: 1.25rem;
-            font-weight: 500;
+            font-weight: 300;
             margin-top: 16px;
         }
 
@@ -295,6 +325,9 @@
         </div>
         <div class="canvas-container">
             <canvas id="canvas"></canvas>
+        </div>
+        <div class="calculator-icon">
+            <span class="dots">⋮</span><span class="lines">≡</span>
         </div>
         <div class="sticky-header">
             <div id="numbers" contenteditable="true"></div>
