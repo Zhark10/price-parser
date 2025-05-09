@@ -5,765 +5,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Анализатор чисел с фото</title>
-    <link rel="manifest" href="manifest.json">
     <script src='https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js'></script>
     <style>
-        :root {
-            /* Светлая тема */
-            --primary-color-light: #6366F1;
-            --primary-hover-light: #4F46E5;
-            --background-light: #F9FAFB;
-            --card-bg-light: #FFFFFF;
-            --text-primary-light: #1F2937;
-            --text-secondary-light: #6B7280;
-            --border-color-light: #E5E7EB;
-
-            /* Темная тема в стиле калькулятора Apple */
-            --primary-color-dark: #FF9F0A;
-            --primary-hover-dark: #FFB340;
-            --background-dark: #000000;
-            --card-bg-dark: #1C1C1E;
-            --text-primary-dark: #000000;
-            --text-secondary-dark: #98989F;
-            --border-color-dark: #2C2C2E;
-
-            /* Активные переменные (изначально темная тема) */
-            --primary-color: var(--primary-color-dark);
-            --primary-hover: var(--primary-hover-dark);
-            --background: var(--background-dark);
-            --card-bg: var(--card-bg-dark);
-            --text-primary: var(--text-primary-dark);
-            --text-secondary: var(--text-secondary-dark);
-            --border-color: var(--border-color-dark);
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --radius: 16px;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --primary-color: var(--primary-color-dark);
-                --primary-hover: var(--primary-hover-dark);
-                --background: var(--background-dark);
-                --card-bg: var(--card-bg-dark);
-                --text-primary: var(--text-primary-dark);
-                --text-secondary: var(--text-secondary-dark);
-                --border-color: var(--border-color-dark);
-                --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
-            }
-        }
-
-        * {
+        body, html {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
-            min-height: 100vh;
-            background-color: var(--background);
-            color: var(--text-primary);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .container {
-            flex: 1;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            min-height: calc(100vh - 48px);
-            width: 100%;
-            position: relative;
-            z-index: 1;
-        }
-
-        .calculator-icon {
-            display: flex;
-            position: fixed;
-            z-index: 101;
-            align-items: center;
-            gap: 6px;
-            margin-top: 8px;
-            user-select: none;
-            -webkit-user-select: none;
-            margin-left: 8px;
-            max-width: min-content;
-            transition: opacity 0.2s ease;
-            cursor: pointer;
-        }
-
-        .calculator-icon .dots {
-            color: var(--primary-color);
-            font-size: 24px;
-            font-weight: bold;
-            line-height: 1;
-        }
-
-        .calculator-icon .lines {
-            color: var(--primary-color);
-            font-size: 38px;
-            line-height: 1;
-            font-weight: 200;
-            position: relative;
-            top: -2px;
-            right: 8px;
-        }
-
-        .calculator-icon:active {
-            opacity: 0.5;
-        }
-
-        .menu-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 998;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .menu-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .slide-menu {
-            position: fixed;
-            bottom: -50vh;
-            left: 0;
-            right: 0;
-            height: 50vh;
-            background: rgba(30, 30, 30, 0.95);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 20px 20px 0 0;
-            z-index: 999;
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 8px;
-        }
-
-        .slide-menu.active {
-            transform: translateY(-100%);
-        }
-
-        .menu-handle {
-            width: 36px;
-            height: 4px;
-            background: #666;
-            border-radius: 2px;
-            margin: 0 auto 20px;
-        }
-
-        .menu-content {
-            padding: 16px 0;
-        }
-
-        .menu-item {
-            color: rgb(155, 155, 155);
-            padding: 12px;
-            font-size: 17px;
-            font-weight: 500;
-            border-radius: 12px;
-            transition: background-color 0.2s ease;
-        }
-
-        .menu-separator {
-            background-color: rgba(155, 155, 155, 0.12);
-            width: 100%;
-            height: 1px;
-        }
-
-        .menu-item:active {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .sticky-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(to bottom,
-                    rgba(217, 217, 234, 0.2) 0%,
-                    rgba(217, 217, 234, 0.2) 60%,
-                    rgba(217, 217, 234, 0) 100%);
-            padding: 48px 16px 16px;
-            z-index: 100;
-            display: none;
-            /* По умолчанию скрыт */
-            flex-direction: column;
-            align-items: flex-start;
-            justify-content: flex-start;
-            margin: 0;
-            width: 100%;
-            -webkit-mask-image: linear-gradient(to bottom,
-                    black 0%,
-                    black 60%,
-                    transparent 100%);
-            mask-image: linear-gradient(to bottom,
-                    black 0%,
-                    black 60%,
-                    transparent 100%);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            /* background: rgba(217, 217, 234, 0.05);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px); */
-            padding: 16px;
-            z-index: 100;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            width: 100%;
-            border-radius: 12px 12px 0 0;
-        }
-
-        .operation-button {
-            border-radius: 50%;
-            background: var(--primary-color);
-            color: white;
-            font-size: 32px;
-            font-weight: bold;
-            font-family: 'Courier New', Courier, monospace;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            aspect-ratio: 1;
-            width: 62px;
-            height: 62px;
-            border: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .operation-button.active {
-            background: white;
-            color: var(--primary-color);
-            box-shadow: 0 0 20px var(--primary-color);
-            transform: scale(1.1);
-            position: relative;
-            z-index: 2;
-        }
-
-        .operation-button:active {
-            transform: scale(0.95);
-        }
-
-        .operation-button.clear-button {
-            background: #6d6b6b;
-            color: white;
-            font-size: 24px;
-            font-weight: 500;
-            position: fixed;
-            bottom: 100px;
-            left: 28px;
-            right: 0;
-            padding: 16px;
-            z-index: 100;
-            display: none; /* TODO: move later */
-            margin: 0;
-        }
-
-        .canvas-container {
-            position: relative;
-            height: 100vh;
-            width: 100vw;
-            display: none;
-            /* Изначально скрыт */
-            align-items: center;
-            justify-content: center;
+            height: 100%;
             overflow: hidden;
         }
-
-        #canvas {
-            width: 100vw;
-            border-radius: var(--radius);
-            display: none;
-            box-shadow: var(--shadow);
-            background: var(--card-bg);
-            transform-origin: center;
-            cursor: move;
-            touch-action: none;
-            z-index: 1;
-        }
-
-        #numbers,
-        #result {
-            transition: all 0.3s ease;
-            z-index: 10;
-        }
-
-        #numbers {
-            top: 12px;
-            font-size: 1.25rem;
-            line-height: 1.5;
-            color: var(--text-primary);
-            word-wrap: break-word;
-            word-break: break-all;
-            max-width: calc(100vw - 32px);
-        }
-
-        #numbers:focus {
-            outline: none;
-        }
-
-        #result {
-            font-size: 2.5rem;
-            font-weight: 500;
-            margin-bottom: 42px;
-            color: var(--text-primary);
-        }
-
-        #fileInput {
+        canvas {
             display: none;
         }
-
         .loading {
-            display: none;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 1.1rem;
-            padding: 16px;
-            background: var(--card-bg);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border-color);
-            animation: pulse 2s infinite;
-        }
-
-        .upload-area {
-            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
             display: flex;
-            flex-direction: column;
             justify-content: center;
-            background: var(--card-bg);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            min-height: inherit;
-        }
-
-        .upload-area.hidden {
-            display: none;
-        }
-
-        .upload-area:hover {
-            background: rgba(99, 102, 241, 0.05);
-            transform: translateY(-2px);
-        }
-
-        .upload-area p {
-            color: var(--primary-color);
-            font-size: 1.25rem;
-            font-weight: 300;
-            margin-top: 16px;
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            color: var(--primary-color);
-            margin-bottom: 16px;
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.5;
-            }
-
-            100% {
-                opacity: 1;
-            }
+            align-items: center;
+            color: white;
+            font-family: system-ui, -apple-system, sans-serif;
+            z-index: 100;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <input type="file" id="fileInput" accept="image/*">
-        <div id="loading" class="loading">
-            Обработка изображения...
-        </div>
-        <div class="canvas-container">
-            <canvas id="canvas"></canvas>
-        </div>
-        <div class="calculator-icon" onclick="toggleMenu()">
-            <span class="dots">⋮</span><span class="lines">≡</span>
-        </div>
-        <div class="menu-overlay"></div>
-        <div class="slide-menu">
-            <div class="menu-handle"></div>
-            <div class="menu-content">
-                <div class="menu-item">Предыдущие 30 дней</div>
-                <div class="menu-separator"></div>
-            </div>
-        </div>
-        <div class="sticky-header">
-            <div id="numbers" contenteditable="true"></div>
-            <div id="result"></div>
-        </div>
-        <div class="upload-area" id="uploadArea" style="background: transparent;">
-            <div class="upload-icon">📸</div>
-            <p>Нажмите, чтобы сделать фото или загрузить из галереи</p>
-        </div>
-        <button class="operation-button clear-button" onclick="clearAll()">AC</button>
-        <div class="footer">
-            <button class="operation-button active" data-operation="+" onclick="setOperation('+')">+</button>
-            <button class="operation-button" data-operation="-" onclick="setOperation('-')">−</button>
-            <button class="operation-button" data-operation="*" onclick="setOperation('×')">×</button>
-            <button class="operation-button" data-operation="/" onclick="setOperation('÷')">÷</button>
-        </div>
+    <div id="loading" class="loading" style="display: none;">
+        Обработка изображения...
     </div>
+    <canvas id="canvas"></canvas>
 
     <script>
-        const INACTIVE_NUMBER_COLOR = '#616161'
-        const ACTIVE_NUMBER_COLOR = '#3b3b3b'
         let worker;
-        let foundNumbersWithColors = [];
-        let scale = 1;
-        let initialPinchDistance = null;
-        let isDragging = false;
-        let startX, startY, translateX = 0, translateY = 0;
-        let currentOperation = '+'; // Добавляем переменную для текущей операции
 
+        // Инициализация Tesseract
         async function initTesseract() {
             worker = await Tesseract.createWorker({
                 logger: m => {
                     const loading = document.getElementById('loading');
-                    loading.style.display = 'none';
                     loading.textContent = m.status;
                 }
             });
             await worker.loadLanguage('eng');
             await worker.initialize('eng');
+            
+            // Сообщаем в React Native, что Tesseract инициализирован
+            sendMessageToReactNative({
+                type: 'tesseractInitialized',
+                success: true
+            });
         }
 
-        async function processImage(file) {
-            const canvas = document.getElementById('canvas');
-            const canvasContainer = document.querySelector('.canvas-container');
-
-            let scale = 1;
-            let translateX = 0;
-            let translateY = 0;
-            let startX, startY;
-            let startDistance;
-            let isDragging = false;
-            let isZooming = false;
-
-            const lerp = (start, end, t) => start + (end - start) * t;
-
-            const handleTouchStart = (event) => {
-                if (event.touches.length === 1) {
-                    isDragging = true;
-                    startX = event.touches[0].clientX - translateX;
-                    startY = event.touches[0].clientY - translateY;
-                } else if (event.touches.length === 2) {
-                    isZooming = true;
-                    startDistance = Math.sqrt(
-                        Math.pow(event.touches[0].clientX - event.touches[1].clientX, 2) +
-                        Math.pow(event.touches[0].clientY - event.touches[1].clientY, 2)
-                    );
-                }
-            };
-
-            const handleTouchMove = (event) => {
-                event.preventDefault(); // Отключение стандартной прокрутки
-
-                if (isZooming && event.touches.length === 2) {
-                    const currentDistance = Math.sqrt(
-                        Math.pow(event.touches[0].clientX - event.touches[1].clientX, 2) +
-                        Math.pow(event.touches[0].clientY - event.touches[1].clientY, 2)
-                    );
-                    const diff = currentDistance - startDistance;
-
-                    // Используем интерполяцию для более плавного изменения масштаба
-                    const targetScale = Math.min(Math.max(0.125, scale + diff * 0.005), 4); // Изменяем 0.005 для настройки чувствительности
-                    scale = lerp(scale, targetScale, 0.2);  // Параметр 0.2 контролирует плавность
-
-                    const transformValue = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-                    canvas.style.transform = transformValue;
-                } else if (isDragging && event.touches.length === 1) {
-                    translateX = event.touches[0].clientX - startX;
-                    translateY = event.touches[0].clientY - startY;
-                    canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-                }
-            };
-
-            const handleTouchEnd = () => {
-                isDragging = false;
-                isZooming = false;
-                startDistance = null;
-            };
-
-            canvasContainer.addEventListener('touchstart', handleTouchStart);
-            canvasContainer.addEventListener('touchmove', handleTouchMove);
-            canvasContainer.addEventListener('touchend', handleTouchEnd);
-
-            const ctx = canvas.getContext('2d');
-            const resultDiv = document.getElementById('result');
-            const numbersDiv = document.getElementById('numbers');
+        // Функция для обработки изображения
+        async function processImage(imageData) {
             const loading = document.getElementById('loading');
-
-            // Показываем блоки с числами и суммой
-            resultDiv.style.display = 'block';
-            canvasContainer.style.display = 'flex'; // Показываем контейнер
-
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-
-            await new Promise(resolve => {
-                img.onload = resolve;
-            });
-
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            ctx.drawImage(img, 0, 0);
-            canvas.style.display = 'block';
-            loading.style.display = 'block';
-
+            loading.style.display = 'flex';
+            
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
             try {
+                // Создаем изображение из полученных данных
+                const img = new Image();
+                
+                const imgLoaded = new Promise((resolve) => {
+                    img.onload = resolve;
+                });
+                
+                if (imageData.startsWith('data:image')) {
+                    img.src = imageData;
+                } else {
+                    img.src = 'data:image/jpeg;base64,' + imageData;
+                }
+                
+                await imgLoaded;
+                
+                // Устанавливаем размеры canvas
+                canvas.width = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                ctx.drawImage(img, 0, 0);
+                
+                // Распознаем текст
                 const { data } = await worker.recognize(canvas);
-
-                // Очищаем предыдущие найденные числа
-                foundNumbersWithColors = [];
-                const sum = extractAndSumNumbers(data.text, data.words, foundNumbersWithColors);
-
-                // Обводим числа после их обработки с улучшенным стилем
-                drawNumbersWithColor(ctx);
-
-                // Добавляем обработчик клика на канвас
-                canvas.addEventListener('click', handleCanvasClick);
+                
+                // Извлекаем числа и их координаты
+                const numbers = extractNumbers(data.words);
+                
+                // Отправляем результаты в React Native
+                sendMessageToReactNative({
+                    type: 'recognitionComplete',
+                    numbers: numbers
+                });
             } catch (error) {
-                resultDiv.textContent = 'Ошибка при обработке изображения';
-                console.error('Ошибка распознавания:', error);
-                canvasContainer.style.display = 'none'; // Скрываем контейнер при ошибке
+                console.error('Ошибка при обработке изображения:');
+                sendMessageToReactNative({
+                    type: 'error',
+                    message: 'Ошибка при обработке изображения: ' + error.message
+                });
             } finally {
                 loading.style.display = 'none';
             }
         }
 
-        // Функция отрисовки всех чисел с их текущим цветом
-        function drawNumbersWithColor(ctx) {
-            // Очищаем только контуры, перерисовываем изображение
-            const canvas = ctx.canvas;
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-            foundNumbersWithColors.forEach((item) => {
-                const { bbox, color } = item;
-                const { x0, y0, x1, y1 } = bbox;
-                const padding = 4;
-
-                // Заливаем область числа цветом вместо обводки
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(
-                    x0 - padding,
-                    y0 - padding,
-                    x1 - x0 + padding * 2,
-                    y1 - y0 + padding * 2,
-                    8
-                );
-                ctx.fill();
-
-                // Получаем текст числа из изображения
-                const numberWidth = x1 - x0;
-                const numberHeight = y1 - y0;
-                const imageData = ctx.getImageData(x0, y0, numberWidth, numberHeight);
-
-                // Перерисовываем текст числа поверх заливки белым цветом
-                ctx.fillStyle = 'white';
-                ctx.font = `${numberHeight * 1.2}px -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(item.value.toString(), x0 + numberWidth / 2, y0 + numberHeight / 2);
-            });
-        }
-
-        // Обработчик клика на канвас
-        function handleCanvasClick(e) {
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            const x = (e.clientX - rect.left) * scaleX;
-            const y = (e.clientY - rect.top) * scaleY;
-
-            for (let i = 0; i < foundNumbersWithColors.length; i++) {
-                const item = foundNumbersWithColors[i];
-                const { bbox } = item;
-                const { x0, y0, x1, y1 } = bbox;
-                const padding = 4;
-
-                if (
-                    x >= (x0 - padding) &&
-                    x <= (x1 + padding) &&
-                    y >= (y0 - padding) &&
-                    y <= (y1 + padding)
-                ) {
-                    if (item.color === INACTIVE_NUMBER_COLOR) {
-                        // При активации числа
-                        item.color = ACTIVE_NUMBER_COLOR;
-                        item.activationTime = Date.now();
-                        item.operationBefore = currentOperation;
-                    } else {
-                        // При деактивации числа
-                        item.color = INACTIVE_NUMBER_COLOR;
-                        delete item.activationTime;
-                        delete item.operationBefore;
-                    }
-
-                    drawNumbersWithColor(ctx);
-                    updateInputAndSum(item);
-                    break;
-                }
-            }
-        }
-
-        function updateInputAndSum(item) {
-            const numbersDiv = document.getElementById('numbers');
-            const resultDiv = document.getElementById('result');
-            const stickyHeader = document.querySelector('.sticky-header');
-
-            // Получаем активные числа в порядке их активации
-            const activeNumbers = foundNumbersWithColors
-                .filter(num => num.color === ACTIVE_NUMBER_COLOR)
-                .sort((a, b) => (a.activationTime || 0) - (b.activationTime || 0));
-
-            stickyHeader.style.display = activeNumbers.length > 0 ? 'flex' : 'none';
-            numbersDiv.style.display = activeNumbers.length > 0 ? 'block' : 'none';
-
-            if (activeNumbers.length > 0) {
-                // Формируем выражение, сохраняя порядок и операции
-                const formattedExpression = activeNumbers.map((num, index) => {
-                    if (index === 0) return num.value;
-
-                    const operation = num.operationBefore || '+';
-                    const opSymbol = operation === '*' ? '×' : operation === '/' ? '÷' : operation;
-
-                    return `${opSymbol}${num.value}`;
-                }).join('');
-
-                numbersDiv.textContent = formattedExpression;
-
-                // Вычисляем результат в порядке активации
-                let result = parseFloat(activeNumbers[0].value);
-                for (let i = 1; i < activeNumbers.length; i++) {
-                    const num = activeNumbers[i];
-                    const operation = num.operationBefore || '+';
-                    const value = parseFloat(num.value);
-
-                    switch (operation) {
-                        case '+': result += value; break;
-                        case '-': result -= value; break;
-                        case '*': result *= value; break;
-                        case '/': result = value !== 0 ? result / value : result; break;
-                    }
-                }
-
-                resultDiv.textContent = `= ${Number.isInteger(result) ? result : result.toFixed(2)}`;
-            } else {
-                numbersDiv.textContent = '';
-                resultDiv.textContent = '= 0';
-            }
-        }
-
-        function setOperation(operation) {
-            // Преобразуем символы операций для корректного сравнения
-            const operationMap = {
-                '×': '*',
-                '÷': '/',
-                '*': '*',
-                '/': '/',
-                '+': '+',
-                '-': '-'
-            };
-
-            currentOperation = operationMap[operation] || operation;
-
-            // Обновляем стили кнопок, учитывая все возможные символы операций
-            document.querySelectorAll('.operation-button').forEach(button => {
-                const buttonOp = button.dataset.operation;
-                const isActive = buttonOp === currentOperation ||
-                    (buttonOp === '*' && operation === '×') ||
-                    (buttonOp === '/' && operation === '÷');
-
-                button.classList.toggle('active', isActive);
-            });
-
-            // Обновляем отображение и пересчитываем результат
-            updateInputAndSum();
-        }
-
-        function updateInputAndSum() {
-            const numbersDiv = document.getElementById('numbers');
-            const resultDiv = document.getElementById('result');
-            const stickyHeader = document.querySelector('.sticky-header');
-
-            const activeNumbers = foundNumbersWithColors
-                .filter(item => item.color === ACTIVE_NUMBER_COLOR)
-                .sort((a, b) => a.activationTime - b.activationTime);
-
-            stickyHeader.style.display = activeNumbers.length > 0 ? 'flex' : 'none';
-            numbersDiv.style.display = activeNumbers.length > 0 ? 'block' : 'none';
-
-            if (activeNumbers.length > 0) {
-                // Формируем строку выражения с учетом операции перед каждым числом
-                const formattedExpression = activeNumbers.map((num, i) => {
-                    if (i === 0) return num.value;
-                    const operation = num.operationBefore || '+';
-                    const opSymbol = operation === '*' ? '×' : operation === '/' ? '÷' : operation;
-                    return `${opSymbol}${num.value}`;
-                }).join('');
-
-                numbersDiv.textContent = formattedExpression;
-
-                // Вычисляем результат
-                let result = parseFloat(activeNumbers[0].value);
-                for (let i = 1; i < activeNumbers.length; i++) {
-                    const num = activeNumbers[i];
-                    const operation = num.operationBefore || '+';
-                    const value = parseFloat(num.value);
-
-                    switch (operation) {
-                        case '+': result += value; break;
-                        case '-': result -= value; break;
-                        case '*': result *= value; break;
-                        case '/': result = value !== 0 ? result / value : result; break;
-                    }
-                }
-
-                resultDiv.textContent = `= ${Number.isInteger(result) ? result : result.toFixed(2)}`;
-            } else {
-                numbersDiv.textContent = '';
-                resultDiv.textContent = '= 0';
-            }
-        }
-
-        function extractAndSumNumbers(text, words, foundNumbers) {
-            let currentNumber = '';
-            let currentBBox = null;
-
+        // Функция для извлечения чисел и их координат
+        function extractNumbers(words) {
+            const foundNumbers = [];
+            
             // Предварительная обработка для объединения близких слов
             const mergedWords = [];
             for (let i = 0; i < words.length; i++) {
@@ -778,17 +129,18 @@
                 mergedWords.push(word);
             }
 
-            mergedWords.forEach((word, index) => {
-                // Проверяем наличие двух последовательных букв (кириллица и латиница)
+            mergedWords.forEach((word) => {
+                // Пропускаем слова с последовательными буквами (кириллица и латиница)
                 if (/[а-яА-Яa-zA-Z]{2}/.test(word.text)) {
-                    return; // Пропускаем слова с последовательными буквами
+                    return;
                 }
 
-                // Улучшенное регулярное выражение для поиска чисел
+                // Ищем числа с улучшенным регулярным выражением
                 const matches = word.text.match(/[+-]?\d+[,\s]?\d*\.?\d*/g);
 
                 if (matches) {
                     matches.forEach(match => {
+                        // Очищаем и форматируем число
                         const cleanNumber = match
                             .replace(/\s/g, '')
                             .replace(/,/g, '.')
@@ -798,152 +150,40 @@
                         if (!isNaN(num)) {
                             foundNumbers.push({
                                 value: num,
-                                bbox: word.bbox,
-                                color: INACTIVE_NUMBER_COLOR // Изначально все числа красные
+                                bbox: word.bbox
                             });
                         }
                     });
                 }
             });
 
-            const totalSum = foundNumbers.reduce((sum, num) => sum + num.value, 0);
-            return Number(totalSum.toFixed(2));
+            return foundNumbers;
         }
 
-        async function init() {
-            await initTesseract();
+        // Функция для отправки сообщений в React Native
+        function sendMessageToReactNative(message) {
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify(message));
+            } else {
+                console.log('ReactNativeWebView not available');
+            }
+        }
 
-            const fileInput = document.getElementById('fileInput');
-            const uploadArea = document.getElementById('uploadArea');
-            const numbersDiv = document.getElementById('numbers');
-            const resultDiv = document.getElementById('result');
-
-            // Добавляем обработчик для области загрузки
-            uploadArea.addEventListener('click', () => {
-                fileInput.click();
-            });
-
-            // Добавляем обработчик для drag&drop
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.style.backgroundColor = 'rgba(0, 122, 255, 0.2)';
-            });
-
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.style.backgroundColor = 'rgba(0, 122, 255, 0.05)';
-            });
-
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.style.backgroundColor = 'rgba(0, 122, 255, 0.05)';
-
-                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                    processImage(e.dataTransfer.files[0]);
+        // Слушатель для сообщений из React Native
+        window.addEventListener('message', function(event) {
+            try {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'processImage') {
+                    processImage(message.imageData);
                 }
-            });
-
-            // Обновляем обработчик изменения текста, чтобы он работал только с синими числами
-            numbersDiv.addEventListener('input', () => {
-                const text = numbersDiv.textContent;
-                const numbers = text.replace('Числа: ', '')
-                    .replace(/\s+/g, '') // Удаляем все пробелы
-                    .split(/([+-])/) // Разделяем по знакам + и -
-                    .filter(n => n) // Удаляем пустые строки
-                    .reduce((acc, curr, i, arr) => {
-                        // Если текущий элемент это знак
-                        if (curr === '+' || curr === '-') {
-                            // Добавляем знак к следующему числу
-                            arr[i + 1] = curr + arr[i + 1];
-                            return acc;
-                        }
-                        // Если это число, добавляем его в аккумулятор
-                        if (!isNaN(parseFloat(curr))) {
-                            acc.push(parseFloat(curr));
-                        }
-                        return acc;
-                    }, []);
-
-                const sum = numbers.reduce((acc, curr) => acc + curr, 0);
-                resultDiv.textContent = `= ${Number(sum.toFixed(2))}`;
-
-                // Обновляем цвета чисел, если пользователь изменил ввод вручную
-                // Эта функция может потребовать дополнительной логики в зависимости от требований
-            });
-
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files && e.target.files[0]) {
-                    processImage(e.target.files[0]);
-                }
-            });
-        }
-
-        function clearAll() {
-            // Сбрасываем все активные числа
-            foundNumbersWithColors.forEach(item => {
-                item.color = INACTIVE_NUMBER_COLOR;
-                delete item.activationTime;
-                delete item.operationBefore;
-            });
-
-            // Перерисовываем канвас
-            const canvas = document.getElementById('canvas');
-            const ctx = canvas.getContext('2d');
-            drawNumbersWithColor(ctx);
-
-            // Очищаем формулу и результат
-            const numbersDiv = document.getElementById('numbers');
-            const resultDiv = document.getElementById('result');
-            const stickyHeader = document.querySelector('.sticky-header');
-
-            numbersDiv.textContent = '';
-            resultDiv.textContent = '= 0';
-            resultDiv.style.fontSize = '2.5rem';
-            stickyHeader.style.display = 'none';
-
-            // Возвращаем операцию по умолчанию
-            currentOperation = '+';
-            document.querySelectorAll('.operation-button').forEach(button => {
-                button.classList.remove('active');
-                if (button.dataset.operation === '+') {
-                    button.classList.add('active');
-                }
-            });
-        }
-
-        function toggleMenu() {
-            const menu = document.querySelector('.slide-menu');
-            const overlay = document.querySelector('.menu-overlay');
-            menu.classList.toggle('active');
-            overlay.classList.toggle('active');
-        }
-
-        // Добавляем обработчик клика по оверлею для закрытия меню
-        document.querySelector('.menu-overlay').addEventListener('click', toggleMenu);
-
-        // Добавляем поддержку свайпа для закрытия меню
-        let startMenuY = 0;
-        const slideMenu = document.querySelector('.slide-menu');
-
-        slideMenu.addEventListener('touchstart', (e) => {
-            startMenuY = e.touches[0].clientY;
-        });
-
-        slideMenu.addEventListener('touchmove', (e) => {
-            const deltaY = e.touches[0].clientY - startMenuY;
-            if (deltaY > 0) { // только при свайпе вниз
-                slideMenu.style.transform = `translateY(${deltaY}px)`;
+            } catch (e) {
+                console.error('Ошибка при обработке сообщения из React Native:');
             }
         });
 
-        slideMenu.addEventListener('touchend', (e) => {
-            const deltaY = e.changedTouches[0].clientY - startMenuY;
-            if (deltaY > 100) { // если свайп достаточно длинный
-                toggleMenu();
-            }
-            slideMenu.style.transform = ''; // сбрасываем transform
-        });
-
-        init();
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', initTesseract);
     </script>
 </body>
 
