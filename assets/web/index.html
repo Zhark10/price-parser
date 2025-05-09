@@ -434,8 +434,8 @@
         </div>
     </div>
 
-    <script>
-        const INACTIVE_NUMBER_COLOR = '#616161'
+<script>
+            const INACTIVE_NUMBER_COLOR = '#616161'
         const ACTIVE_NUMBER_COLOR = '#3b3b3b'
         let worker;
         let foundNumbersWithColors = [];
@@ -520,7 +520,6 @@
 
             const ctx = canvas.getContext('2d');
             const resultDiv = document.getElementById('result');
-            const numbersDiv = document.getElementById('numbers');
             const loading = document.getElementById('loading');
 
             // Показываем блоки с числами и суммой
@@ -545,7 +544,7 @@
 
                 // Очищаем предыдущие найденные числа
                 foundNumbersWithColors = [];
-                const sum = extractAndSumNumbers(data.text, data.words, foundNumbersWithColors);
+                extractAndSumNumbers(data.text, data.words, foundNumbersWithColors);
 
                 // Обводим числа после их обработки с улучшенным стилем
                 drawNumbersWithColor(ctx);
@@ -566,7 +565,6 @@
             // Очищаем только контуры, перерисовываем изображение
             const canvas = ctx.canvas;
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
             foundNumbersWithColors.forEach((item) => {
                 const { bbox, color } = item;
                 const { x0, y0, x1, y1 } = bbox;
@@ -588,6 +586,7 @@
                 const numberWidth = x1 - x0;
                 const numberHeight = y1 - y0;
                 const imageData = ctx.getImageData(x0, y0, numberWidth, numberHeight);
+
 
                 // Перерисовываем текст числа поверх заливки белым цветом
                 ctx.fillStyle = 'white';
@@ -634,85 +633,10 @@
                     }
 
                     drawNumbersWithColor(ctx);
-                    updateInputAndSum(item);
+                    updateInputAndSum();
                     break;
                 }
             }
-        }
-
-        function updateInputAndSum(item) {
-            const numbersDiv = document.getElementById('numbers');
-            const resultDiv = document.getElementById('result');
-            const stickyHeader = document.querySelector('.sticky-header');
-
-            // Получаем активные числа в порядке их активации
-            const activeNumbers = foundNumbersWithColors
-                .filter(num => num.color === ACTIVE_NUMBER_COLOR)
-                .sort((a, b) => (a.activationTime || 0) - (b.activationTime || 0));
-
-            stickyHeader.style.display = activeNumbers.length > 0 ? 'flex' : 'none';
-            numbersDiv.style.display = activeNumbers.length > 0 ? 'block' : 'none';
-
-            if (activeNumbers.length > 0) {
-                // Формируем выражение, сохраняя порядок и операции
-                const formattedExpression = activeNumbers.map((num, index) => {
-                    if (index === 0) return num.value;
-
-                    const operation = num.operationBefore || '+';
-                    const opSymbol = operation === '*' ? '×' : operation === '/' ? '÷' : operation;
-
-                    return `${opSymbol}${num.value}`;
-                }).join('');
-
-                numbersDiv.textContent = formattedExpression;
-
-                // Вычисляем результат в порядке активации
-                let result = parseFloat(activeNumbers[0].value);
-                for (let i = 1; i < activeNumbers.length; i++) {
-                    const num = activeNumbers[i];
-                    const operation = num.operationBefore || '+';
-                    const value = parseFloat(num.value);
-
-                    switch (operation) {
-                        case '+': result += value; break;
-                        case '-': result -= value; break;
-                        case '*': result *= value; break;
-                        case '/': result = value !== 0 ? result / value : result; break;
-                    }
-                }
-
-                resultDiv.textContent = `= ${Number.isInteger(result) ? result : result.toFixed(2)}`;
-            } else {
-                numbersDiv.textContent = '';
-                resultDiv.textContent = '= 0';
-            }
-        }
-
-        function setOperation(operation) {
-            // Преобразуем символы операций для корректного сравнения
-            const operationMap = {
-                '×': '*',
-                '÷': '/',
-                '*': '*',
-                '/': '/',
-                '+': '+',
-                '-': '-'
-            };
-
-            currentOperation = operationMap[operation] || operation;
-
-            // Обновляем стили кнопок, учитывая все возможные символы операций
-            document.querySelectorAll('.operation-button').forEach(button => {
-                const buttonOp = button.dataset.operation;
-                const isActive = buttonOp === currentOperation ||
-                    (buttonOp === '*' && operation === '×') ||
-                    (buttonOp === '/' && operation === '÷');
-
-                button.classList.toggle('active', isActive);
-            });
-
-            // Обновляем отображение и пересчитываем результат
-            updateInputAndSum();
         }
 
         function updateInputAndSum() {
@@ -944,7 +868,7 @@
         });
 
         init();
-    </script>
+</script>
 </body>
 
 </html>
