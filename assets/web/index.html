@@ -7,6 +7,68 @@
     <title>Анализатор чисел с фото</title>
     <link rel="manifest" href="manifest.json">
     <script src='https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js'></script>
+    <script src='https://docs.opencv.org/4.8.0/opencv.js'></script>
+    <script>
+        class ImageProcessor {
+            constructor() {
+                this.cv = window.cv;
+            }
+
+            async preprocessImage(imageElement) {
+                return new Promise((resolve) => {
+                    const src = cv.imread(imageElement);
+                    
+                    // Преобразование в оттенки серого
+                    const gray = new cv.Mat();
+                    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+
+                    // Улучшение контраста
+                    const enhanced = new cv.Mat();
+                    cv.equalizeHist(gray, enhanced);
+
+                    // Гауссово размытие для уменьшения шума
+                    const blurred = new cv.Mat();
+                    cv.GaussianBlur(enhanced, blurred, new cv.Size(3, 3), 0);
+
+                    // Применение адаптивной бинаризации с оптимизированными параметрами
+                    const binary = new cv.Mat();
+                    cv.adaptiveThreshold(blurred, binary, 255,
+                        cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+                        cv.THRESH_BINARY,
+                        15, // Увеличенный размер блока для лучшего распознавания текста
+                        5   // Увеличенная константа C для лучшего контраста
+                    );
+
+                    // Морфологические операции для улучшения качества текста
+                    const kernel = cv.Mat.ones(2, 2, cv.CV_8U);
+                    const morphed = new cv.Mat();
+                    
+                    // Операция закрытия для соединения близких компонентов
+                    cv.morphologyEx(binary, morphed, cv.MORPH_CLOSE, kernel);
+                    
+                    // Операция открытия для удаления мелких шумов
+                    const cleaned = new cv.Mat();
+                    cv.morphologyEx(morphed, cleaned, cv.MORPH_OPEN, kernel);
+
+                    // Создание временного canvas для вывода результата
+                    const tempCanvas = document.createElement('canvas');
+                    cv.imshow(tempCanvas, cleaned);
+                    
+                    // Освобождение памяти
+                    src.delete();
+                    gray.delete();
+                    enhanced.delete();
+                    blurred.delete();
+                    binary.delete();
+                    kernel.delete();
+                    morphed.delete();
+                    cleaned.delete();
+                    
+                    resolve(tempCanvas);
+                });
+            }
+        }
+    </script>
     <style>
         :root {
             /* Светлая тема */
@@ -457,6 +519,23 @@
             await worker.initialize('eng');
         }
 
+        let imageProcessor;
+
+        async function initOpenCV() {
+            return new Promise((resolve) => {
+                if (window.cv) {
+                    imageProcessor = new ImageProcessor();
+                    resolve();
+                } else {
+                    // Ждем загрузки OpenCV
+                    cv['onRuntimeInitialized'] = () => {
+                        imageProcessor = new ImageProcessor();
+                        resolve();
+                    };
+                }
+            });
+        }
+
         async function processImage(file) {
             const canvas = document.getElementById('canvas');
             const canvasContainer = document.querySelector('.canvas-container');
@@ -533,9 +612,12 @@
                 img.onload = resolve;
             });
 
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            ctx.drawImage(img, 0, 0);
+            // Предварительная обработка изображения с помощью OpenCV
+            const processedCanvas = await imageProcessor.preprocessImage(img);
+
+            canvas.width = processedCanvas.width;
+            canvas.height = processedCanvas.height;
+            ctx.drawImage(processedCanvas, 0, 0);
             canvas.style.display = 'block';
             loading.style.display = 'block';
 
@@ -735,7 +817,7 @@
         }
 
         async function init() {
-            await initTesseract();
+            await Promise.all([initTesseract(), initOpenCV()]);
 
             const fileInput = document.getElementById('fileInput');
             const uploadArea = document.getElementById('uploadArea');
