@@ -4,6 +4,7 @@ struct NumberOverlay: View {
     var numberBoxes: [TextRecognizerViewModel.NumberBox]
     var image: UIImage
     var parentSize: CGSize
+    var onNumberTap: (UUID) -> Void // Add this line
 
     private var imageScale: CGFloat {
         let widthScale = parentSize.width / image.size.width
@@ -27,19 +28,17 @@ struct NumberOverlay: View {
             ForEach(numberBoxes) { box in
                 let convertedRect = convertBoundingBox(originalImagePixelRect: box.boundingBox)
 
-                // Рамка вокруг цифры
-                Rectangle()
-                    .stroke(Color.red, lineWidth: 2)
-                    .frame(width: convertedRect.width, height: convertedRect.height)
-                    .position(x: convertedRect.midX, y: convertedRect.midY)
-
                 // Текст с цифрой
                 Text(box.number)
+                    .frame(width: convertedRect.width, height: convertedRect.height)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.red)
+                    .foregroundColor(box.isSelected ? .blue : .red) // Change color based on selection
                     .background(Color.white.opacity(0.9))
                     .cornerRadius(3)
-                    .position(x: convertedRect.midX, y: convertedRect.minY - 10)
+                    .position(x: convertedRect.midX, y: convertedRect.midY)
+                    .onTapGesture { // Add this modifier
+                        onNumberTap(box.id)
+                    }
             }
         }
     }

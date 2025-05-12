@@ -7,6 +7,18 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
+            // Display sum of selected numbers at the top
+            VStack {
+                if inputImage != nil {
+                    Text("Sum: \(viewModel.selectedNumbersSum)")
+                        .font(.title)
+                        .padding()
+                    Spacer()
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .zIndex(1) // Ensure sum is displayed above other content
+
              if let image = inputImage {
                  GeometryReader { geometry in
                      ZStack {
@@ -23,7 +35,10 @@ struct ContentView: View {
                                  NumberOverlay(
                                      numberBoxes: viewModel.numberBoxes,
                                      image: image,
-                                     parentSize: geometry.size
+                                     parentSize: geometry.size,
+                                     onNumberTap: { id in // Pass the callback
+                                        viewModel.toggleSelection(for: id)
+                                     }
                                  )
                              )
 

@@ -5,11 +5,13 @@ class TextRecognizerViewModel: ObservableObject {
     @Published var recognizedNumbers = ""
     @Published var errorMessage = ""
     @Published var numberBoxes: [NumberBox] = []
+    @Published var selectedNumbersSum: Int = 0
 
     struct NumberBox: Identifiable {
         let id = UUID()
         let number: String
         let boundingBox: CGRect
+        var isSelected: Bool = false
     }
 
     func recognizeText(in image: UIImage) {
@@ -77,6 +79,18 @@ class TextRecognizerViewModel: ObservableObject {
         }
 
         self.numberBoxes = boxes
-        self.recognizedNumbers = boxes.map { $0.number }.joined(separator: "\n")
+        self.recognizedNumbers = boxes.map { $0.number }.joined(separator: "\\n")
+        updateSelectedNumbersSum() // Add this line
+    }
+
+    func toggleSelection(for numberBoxId: UUID) {
+        if let index = numberBoxes.firstIndex(where: { $0.id == numberBoxId }) {
+            numberBoxes[index].isSelected.toggle()
+            updateSelectedNumbersSum()
+        }
+    }
+
+    private func updateSelectedNumbersSum() {
+        selectedNumbersSum = numberBoxes.filter { $0.isSelected }.compactMap { Int($0.number) }.reduce(0, +)
     }
 }
