@@ -35,6 +35,7 @@ struct NumberOverlay: View {
                     .foregroundColor(box.isSelected ? .blue : .red) // Change color based on selection
                     .background(Color.white.opacity(0.9))
                     .cornerRadius(3)
+                    .border(Color.gray) // Add this line for the gray border
                     .position(x: convertedRect.midX, y: convertedRect.midY)
                     .onTapGesture { // Add this modifier
                         onNumberTap(box.id)
