@@ -14,6 +14,7 @@ struct calc_aiApp: App {
     var body: some Scene {
         WindowGroup {
             CalculatorView()
+                .environmentObject(viewModel)
 //            ContentView()
         }
     }
