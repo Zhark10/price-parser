@@ -6,21 +6,24 @@ struct CameraPreview: UIViewRepresentable {
     
     class PreviewView: UIView {
         override class var layerClass: AnyClass {
-            return AVCaptureVideoPreviewLayer.self
+            AVCaptureVideoPreviewLayer.self
         }
         
         var videoPreviewLayer: AVCaptureVideoPreviewLayer {
-            return layer as! AVCaptureVideoPreviewLayer
+            layer as! AVCaptureVideoPreviewLayer
         }
     }
     
     func makeUIView(context: Context) -> PreviewView {
         let view = PreviewView()
-        view.backgroundColor = .black
         view.videoPreviewLayer.session = captureSession
         view.videoPreviewLayer.videoGravity = .resizeAspectFill
         view.videoPreviewLayer.connection?.videoOrientation = .portrait
         return view
+    }
+    
+    // Обязательный метод
+    func updateUIView(_ uiView: PreviewView, context: Context) {
     }
 }
 
