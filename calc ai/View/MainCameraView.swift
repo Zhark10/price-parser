@@ -15,7 +15,7 @@ struct MainCameraView: View {
         NavigationStack {
             ZStack {
                 CameraPreview()
-                    .edgesIgnoringSafeArea(.all) // Игнорируем безопасные зоны
+                    .edgesIgnoringSafeArea(.all)
                 
                 VStack {
                     Spacer()
@@ -32,6 +32,38 @@ struct MainCameraView: View {
     }
 }
 
+struct CameraLeftButton: View {
+    @State private var showingImagePicker = false
+    @State private var selectedImage: UIImage?
+    @State private var navigateToParser = false
+    
+    var body: some View {
+        ZStack {
+            NavigationLink("", destination: PhotoParserView(inputImage: $selectedImage), isActive: $navigateToParser)
+            
+            Button(action: {
+                showingImagePicker = true
+            }) {
+                Image(systemName: "photo")
+                    .font(.system(size: 32, weight: Font.Weight.medium))
+                    .foregroundColor(.white)
+                    .frame(width: 64, height: 64)
+                    .background(Color.white.opacity(0.5))
+                    .clipShape(Circle())
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            ImagePicker(image: $selectedImage)
+        }
+        .onChange(of: selectedImage) { newImage in
+            if newImage != nil {
+                showingImagePicker = false
+                navigateToParser = true
+            }
+        }
+    }
+}
+
 struct CameraMainButton: View {
     var body: some View {
         Button(action: {}) {
@@ -40,19 +72,6 @@ struct CameraMainButton: View {
                 .foregroundColor(.secondary.opacity(1))
                 .frame(width: 82, height: 82)
                 .background(Color.white)
-                .clipShape(Circle())
-        }
-    }
-}
-
-struct CameraLeftButton: View {
-    var body: some View {
-        NavigationLink(destination: ContentView()) {
-            Image(systemName: "circle")
-                .font(.system(size: 64, weight: Font.Weight.light))
-                .foregroundColor(.white)
-                .frame(width: 64, height: 64)
-                .background(Color.white.opacity(0.5))
                 .clipShape(Circle())
         }
     }
