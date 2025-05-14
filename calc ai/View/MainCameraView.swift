@@ -4,22 +4,23 @@ import AVFoundation
 struct CameraPreview: UIViewRepresentable {
     let captureSession: AVCaptureSession
     
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
+    class PreviewView: UIView {
+        override class var layerClass: AnyClass {
+            return AVCaptureVideoPreviewLayer.self
+        }
         
-        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.videoGravity = .resizeAspectFill
-        previewLayer.frame = view.bounds
-        view.layer.addSublayer(previewLayer)
-        
-        return view
+        var videoPreviewLayer: AVCaptureVideoPreviewLayer {
+            return layer as! AVCaptureVideoPreviewLayer
+        }
     }
     
-    func updateUIView(_ uiView: UIView, context: Context) {
-        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            previewLayer.frame = uiView.bounds
-            previewLayer.connection?.videoOrientation = .portrait
-        }
+    func makeUIView(context: Context) -> PreviewView {
+        let view = PreviewView()
+        view.backgroundColor = .black
+        view.videoPreviewLayer.session = captureSession
+        view.videoPreviewLayer.videoGravity = .resizeAspectFill
+        view.videoPreviewLayer.connection?.videoOrientation = .portrait
+        return view
     }
 }
 
@@ -47,8 +48,10 @@ struct MainCameraView: View {
             }
         }
         .onAppear {
-            DispatchQueue.global(qos: .userInitiated).async {
-                cameraManager.captureSession?.startRunning()
+            if cameraManager.captureSession?.isRunning == false {
+                DispatchQueue.global(qos: .userInitiated).async {
+                    cameraManager.captureSession?.startRunning()
+                }
             }
         }
     }
