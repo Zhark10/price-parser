@@ -13,9 +13,12 @@ struct calc_aiApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // TODO: Этот компонент бы переименовать и вынести к другим скринам
+            // ContentView()
+            // TODO: Заведено на перспективу для главного экрана, на котором будет открываться камера
+            // MainCameraView()
             CalculatorView()
-                .environmentObject(viewModel)
-//            ContentView()
+                 .environmentObject(viewModel)
         }
     }
 }
