@@ -12,19 +12,21 @@ struct CameraPreview: UIViewRepresentable {
 
 struct MainCameraView: View {
     var body: some View {
-        ZStack {
-            CameraPreview()
-                .edgesIgnoringSafeArea(.all) // Игнорируем безопасные зоны
-            
-            VStack {
-                Spacer()
+        NavigationStack {
+            ZStack {
+                CameraPreview()
+                    .edgesIgnoringSafeArea(.all) // Игнорируем безопасные зоны
                 
-                HStack(spacing: 40) {
-                    CameraLeftButton()
-                    CameraMainButton()
-                    CameraRightButton()
+                VStack {
+                    Spacer()
+                    
+                    HStack(spacing: 40) {
+                        CameraLeftButton()
+                        CameraMainButton()
+                        CameraRightButton()
+                    }
+                    .padding(.bottom, 20)
                 }
-                .padding(.bottom, 20)
             }
         }
     }
@@ -45,7 +47,7 @@ struct CameraMainButton: View {
 
 struct CameraLeftButton: View {
     var body: some View {
-        Button(action: {}) {
+        NavigationLink(destination: ContentView()) {
             Image(systemName: "circle")
                 .font(.system(size: 64, weight: Font.Weight.light))
                 .foregroundColor(.white)
@@ -57,8 +59,10 @@ struct CameraLeftButton: View {
 }
 
 struct CameraRightButton: View {
+    @EnvironmentObject var viewModel: ViewModel
+    
     var body: some View {
-        Button(action: {}) {
+        NavigationLink(destination: CalculatorView().environmentObject(viewModel)) {
             Image(systemName: "function")
                 .font(.system(size: 32, weight: Font.Weight.medium))
                 .foregroundColor(.white)
@@ -72,5 +76,6 @@ struct CameraRightButton: View {
 struct MainCameraView_Previews: PreviewProvider {
     static var previews: some View {
         MainCameraView()
+            .environmentObject(ViewModel()) // Добавляем ViewModel в превью
     }
 }

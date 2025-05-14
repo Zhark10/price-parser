@@ -1,8 +1,10 @@
 import SwiftUI
 
+// TODO: переименовать вьюху с подгруженным изображением
 struct ContentView: View {
     @StateObject private var viewModel = TextRecognizerViewModel()
-    @State private var showingImagePicker = false
+    // TODO: перенести логику пикера на MainCameraView (пока временно поставил флаг в true)
+    @State private var showingImagePicker = true
     @State private var inputImage: UIImage?
 
     var body: some View {
