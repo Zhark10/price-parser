@@ -44,8 +44,8 @@ struct CameraLeftButton: View {
             Button(action: {
                 showingImagePicker = true
             }) {
-                Image(systemName: "photo")
-                    .font(.system(size: 32, weight: Font.Weight.medium))
+                Image(systemName: "circle")
+                    .font(.system(size: 64, weight: Font.Weight.light))
                     .foregroundColor(.white)
                     .frame(width: 64, height: 64)
                     .background(Color.white.opacity(0.5))
@@ -82,8 +82,10 @@ struct CameraRightButton: View {
     
     var body: some View {
         NavigationLink(destination: CalculatorView().environmentObject(viewModel)) {
-            Image(systemName: "function")
-                .font(.system(size: 32, weight: Font.Weight.medium))
+            Image("CalcIcon")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 48, height: 32)
                 .foregroundColor(.white)
                 .frame(width: 64, height: 64)
                 .background(Color.orangeCalc)
