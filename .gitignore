@@ -1,0 +1,15 @@
+# Xcode
+xcuserdata/
+*.xcuserdatad/
+*.xcuserstate
+
+# IDE
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Временные файлы
+*.swp
+*~

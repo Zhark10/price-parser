@@ -398,6 +398,8 @@
 				DEVELOPMENT_ASSET_PATHS = "\"calc ai/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Приложению требуется доступ к камере для создания фотографий";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Приложению требуется доступ к фотогалерее для отображения последнего снимка";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -424,8 +426,11 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"calc ai/Preview Content\"";
+				DEVELOPMENT_TEAM = VM5KKNMU9T;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Приложению требуется доступ к камере для создания фотографий";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Приложению требуется доступ к фотогалерее для отображения последнего снимка";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

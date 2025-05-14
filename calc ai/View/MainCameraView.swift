@@ -1,55 +1,85 @@
 import SwiftUI
+import AVFoundation
 
 struct CameraPreview: UIViewRepresentable {
+    let captureSession: AVCaptureSession
+    
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
-        view.backgroundColor = .grayCalc
+        
+        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer.videoGravity = .resizeAspectFill
+        previewLayer.frame = view.bounds
+        view.layer.addSublayer(previewLayer)
+        
         return view
     }
     
-    func updateUIView(_ uiView: UIView, context: Context) {}
+    func updateUIView(_ uiView: UIView, context: Context) {
+        if let previewLayer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
+            previewLayer.frame = uiView.bounds
+            previewLayer.connection?.videoOrientation = .portrait
+        }
+    }
 }
 
 struct MainCameraView: View {
+    @StateObject private var cameraManager = CameraManager()
+    
     var body: some View {
         NavigationStack {
             ZStack {
-                CameraPreview()
-                    .edgesIgnoringSafeArea(.all)
+                if let session = cameraManager.captureSession {
+                    CameraPreview(captureSession: session)
+                        .edgesIgnoringSafeArea(.all)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
                 
                 VStack {
                     Spacer()
-                    
                     HStack(spacing: 40) {
                         CameraLeftButton()
-                        CameraMainButton()
+                        CameraMainButton(cameraManager: cameraManager)
                         CameraRightButton()
                     }
                     .padding(.bottom, 20)
                 }
             }
         }
+        .onAppear {
+            DispatchQueue.global(qos: .userInitiated).async {
+                cameraManager.captureSession?.startRunning()
+            }
+        }
     }
 }
 
 struct CameraLeftButton: View {
+    @StateObject private var galleryVM = PhotoGalleryViewModel()
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var navigateToParser = false
     
     var body: some View {
         ZStack {
-            NavigationLink("", destination: PhotoParserView(inputImage: $selectedImage), isActive: $navigateToParser)
+            NavigationLink("", destination: PhotoParserView(inputImage: $selectedImage), 
+                         isActive: $navigateToParser)
             
-            Button(action: {
-                showingImagePicker = true
-            }) {
-                Image(systemName: "circle")
-                    .font(.system(size: 64, weight: Font.Weight.light))
-                    .foregroundColor(.white)
-                    .frame(width: 64, height: 64)
-                    .background(Color.white.opacity(0.5))
-                    .clipShape(Circle())
+            Button(action: { showingImagePicker = true }) {
+                if let image = galleryVM.lastImage {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 62, height: 62)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                } else {
+                    Text("")
+                        .frame(width: 62, height: 62)
+                        .background(Color.backgroundCalc)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                }
             }
         }
         .sheet(isPresented: $showingImagePicker) {
@@ -57,7 +87,6 @@ struct CameraLeftButton: View {
         }
         .onChange(of: selectedImage) { newImage in
             if newImage != nil {
-                showingImagePicker = false
                 navigateToParser = true
             }
         }
@@ -65,14 +94,26 @@ struct CameraLeftButton: View {
 }
 
 struct CameraMainButton: View {
+    @ObservedObject var cameraManager: CameraManager
+    @State private var navigateToParser = false
+    
     var body: some View {
-        Button(action: {}) {
-            Image(systemName: "circle")
-                .font(.system(size: 76, weight: Font.Weight.light))
-                .foregroundColor(.secondary.opacity(1))
-                .frame(width: 82, height: 82)
-                .background(Color.white)
-                .clipShape(Circle())
+        ZStack {
+            NavigationLink("", destination: PhotoParserView(inputImage: $cameraManager.capturedImage),
+                         isActive: $navigateToParser)
+            
+            Button(action: {
+                cameraManager.capturePhoto { _ in
+                    navigateToParser = true
+                }
+            }) {
+                Image(systemName: "circle")
+                    .font(.system(size: 72, weight: Font.Weight.ultraLight))
+                    .foregroundColor(Color.black)
+                    .frame(width: 72, height: 72)
+                    .background(Color.white)
+                    .clipShape(Circle())
+            }
         }
     }
 }
@@ -87,7 +128,7 @@ struct CameraRightButton: View {
                 .aspectRatio(contentMode: .fit)
                 .frame(width: 48, height: 32)
                 .foregroundColor(.white)
-                .frame(width: 64, height: 64)
+                .frame(width: 62, height: 62)
                 .background(Color.orangeCalc)
                 .clipShape(Circle())
         }
