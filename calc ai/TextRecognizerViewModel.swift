@@ -59,27 +59,28 @@ class TextRecognizerViewModel: ObservableObject {
         for observation in observations {
             guard let candidate = observation.topCandidates(1).first else { continue }
 
-            // Ищем любые цифры в распознанном тексте
-            let numbers = candidate.string.components(separatedBy: .decimalDigits.inverted).joined()
-            guard !numbers.isEmpty else { continue }
+            // Ищем целые и дробные числа (с точкой или запятой)
+            let pattern = "[0-9]+([.,][0-9]+)?"
+            let regex = try? NSRegularExpression(pattern: pattern)
+            let matches = regex?.matches(in: candidate.string, range: NSRange(candidate.string.startIndex..., in: candidate.string)) ?? []
 
-            // Конвертируем координаты
-            guard let box = try? candidate.boundingBox(for: candidate.string.startIndex..<candidate.string.endIndex) else {
-                continue
+            for match in matches {
+                guard let range = Range(match.range, in: candidate.string) else { continue }
+                let numberString = candidate.string[range].replacingOccurrences(of: ",", with: ".")
+                // Конвертируем координаты для найденного числа
+                guard let box = try? candidate.boundingBox(for: range) else { continue }
+                let boundingBox = CGRect(
+                    x: box.topLeft.x * imageSize.width,
+                    y: (1 - box.topLeft.y) * imageSize.height,
+                    width: (box.topRight.x - box.topLeft.x) * imageSize.width + 20, // TODO: ... точки появляются, когда текст не влазит в рамку
+                    height: (box.topLeft.y - box.bottomLeft.y) * imageSize.height
+                )
+                boxes.append(NumberBox(number: numberString, boundingBox: boundingBox))
             }
-
-            let boundingBox = CGRect(
-                x: box.topLeft.x * imageSize.width,
-                y: (1 - box.topLeft.y) * imageSize.height, // Инвертируем Y
-                width: (box.topRight.x - box.topLeft.x) * imageSize.width,
-                height: (box.topLeft.y - box.bottomLeft.y) * imageSize.height
-            )
-
-            boxes.append(NumberBox(number: numbers, boundingBox: boundingBox))
         }
 
         self.numberBoxes = boxes
-        self.recognizedNumbers = boxes.map { $0.number }.joined(separator: "\\n")
+        self.recognizedNumbers = boxes.map { $0.number }.joined(separator: "\n")
         updateSelectedNumbersSum() // Add this line
     }
 
@@ -91,6 +92,6 @@ class TextRecognizerViewModel: ObservableObject {
     }
 
     private func updateSelectedNumbersSum() {
-        selectedNumbersSum = numberBoxes.filter { $0.isSelected }.compactMap { Int($0.number) }.reduce(0, +)
+        selectedNumbersSum = Int(numberBoxes.filter { $0.isSelected }.compactMap { Double($0.number) }.reduce(0, +))
     }
 }
