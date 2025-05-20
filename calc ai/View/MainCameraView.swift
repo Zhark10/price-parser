@@ -50,19 +50,11 @@ struct MainCameraView: View {
                 }
             }
         }
-        //TODO: remove
-//         .onAppear {
-//             if cameraManager.captureSession?.isRunning == false {
-//                 DispatchQueue.global(qos: .userInitiated).async {
-//                     cameraManager.captureSession?.startRunning()
-//                 }
-//             }
-//         }
     }
 }
 
 struct CameraLeftButton: View {
-    @StateObject private var galleryVM = PhotoGalleryViewModel()
+    @ObservedObject private var galleryVM = PhotoGalleryViewModel.shared
     @State private var showingImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var navigateToParser = false
@@ -81,7 +73,7 @@ struct CameraLeftButton: View {
                         .clipShape(Circle())
                         .overlay(Circle().stroke(Color.white, lineWidth: 2))
                 } else {
-                    Text("")
+                    Color.backgroundCalc
                         .frame(width: 62, height: 62)
                         .background(Color.backgroundCalc)
                         .clipShape(Circle())
@@ -145,6 +137,6 @@ struct CameraRightButton: View {
 struct MainCameraView_Previews: PreviewProvider {
     static var previews: some View {
         MainCameraView()
-            .environmentObject(ViewModel()) // Добавляем ViewModel в превью
+            .environmentObject(ViewModel())
     }
 }

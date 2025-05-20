@@ -2,6 +2,7 @@ import Photos
 import SwiftUI
 
 class PhotoGalleryViewModel: NSObject, ObservableObject {
+    static let shared = PhotoGalleryViewModel()
     @Published var lastImage: UIImage?
     
     override init() {
@@ -14,7 +15,7 @@ class PhotoGalleryViewModel: NSObject, ObservableObject {
         PHPhotoLibrary.shared().unregisterChangeObserver(self)
     }
     
-    private func fetchLastPhoto() {
+    func fetchLastPhoto() {
         let fetchOptions = PHFetchOptions()
         fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         fetchOptions.fetchLimit = 1
