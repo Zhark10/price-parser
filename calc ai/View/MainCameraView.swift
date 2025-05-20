@@ -50,13 +50,14 @@ struct MainCameraView: View {
                 }
             }
         }
-        .onAppear {
-            if cameraManager.captureSession?.isRunning == false {
-                DispatchQueue.global(qos: .userInitiated).async {
-                    cameraManager.captureSession?.startRunning()
-                }
-            }
-        }
+        //TODO: remove
+//         .onAppear {
+//             if cameraManager.captureSession?.isRunning == false {
+//                 DispatchQueue.global(qos: .userInitiated).async {
+//                     cameraManager.captureSession?.startRunning()
+//                 }
+//             }
+//         }
     }
 }
 
