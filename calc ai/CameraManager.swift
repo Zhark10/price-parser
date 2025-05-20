@@ -7,9 +7,68 @@ class CameraManager: ObservableObject {
     var captureSession: AVCaptureSession?
     private var photoOutput: AVCapturePhotoOutput?
     private var photoCaptureProcessor: PhotoCaptureProcessor?
+    private var isSessionRunning = false
     
     init() {
         setupCamera()
+        setupNotifications()
+    }
+    
+    deinit {
+        stopCaptureSession()
+        removeNotifications()
+    }
+    
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sessionRuntimeError),
+            name: .AVCaptureSessionRuntimeError,
+            object: captureSession)
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sessionWasInterrupted),
+            name: .AVCaptureSessionWasInterrupted,
+            object: captureSession)
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(sessionInterruptionEnded),
+            name: .AVCaptureSessionInterruptionEnded,
+            object: captureSession)
+    }
+    
+    private func removeNotifications() {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func sessionRuntimeError(notification: NSNotification) {
+        guard let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError else { return }
+        print("Ошибка захвата: \(error.localizedDescription)")
+        
+        // Попытка восстановить сессию
+        if error.code == .mediaServicesWereReset {
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.stopCaptureSession()
+                self?.setupCamera()
+            }
+        }
+    }
+    
+    @objc private func sessionWasInterrupted(notification: NSNotification) {
+        if let userInfoValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as AnyObject?,
+           let reasonIntegerValue = userInfoValue.integerValue,
+           let reason = AVCaptureSession.InterruptionReason(rawValue: reasonIntegerValue) {
+            print("Сессия прервана с причиной: \(reason)")
+        }
+    }
+    
+    @objc private func sessionInterruptionEnded(notification: NSNotification) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.captureSession?.startRunning()
+            self?.isSessionRunning = true
+        }
     }
     
     private func setupCamera() {
@@ -34,8 +93,24 @@ class CameraManager: ObservableObject {
         
         captureSession.commitConfiguration()
         
+        startCaptureSession()
+    }
+    
+    private func startCaptureSession() {
+        guard !isSessionRunning else { return }
+        
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             self?.captureSession?.startRunning()
+            self?.isSessionRunning = true
+        }
+    }
+    
+    private func stopCaptureSession() {
+        guard isSessionRunning else { return }
+        
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            self?.captureSession?.stopRunning()
+            self?.isSessionRunning = false
         }
     }
     
@@ -49,17 +124,31 @@ class CameraManager: ObservableObject {
         settings.flashMode = .auto
         settings.isHighResolutionPhotoEnabled = true
         
+        // Создаем слабую ссылку на self для предотвращения утечек памяти
         photoCaptureProcessor = PhotoCaptureProcessor { [weak self] image in
-            guard let self = self, let image = image else {
+            guard let self = self else { return }
+            
+            // Очищаем processor после использования
+            defer {
+                DispatchQueue.main.async {
+                    self.photoCaptureProcessor = nil
+                }
+            }
+            
+            guard let image = image else {
                 DispatchQueue.main.async {
                     completion(nil)
                 }
                 return
             }
             
-            // Сохраняем фото в галерею
             PHPhotoLibrary.requestAuthorization { status in
-                guard status == .authorized else { return }
+                guard status == .authorized else {
+                    DispatchQueue.main.async {
+                        completion(nil)
+                    }
+                    return
+                }
                 
                 PHPhotoLibrary.shared().performChanges {
                     PHAssetChangeRequest.creationRequestForAsset(from: image)
@@ -103,7 +192,10 @@ class PhotoCaptureProcessor: NSObject, AVCapturePhotoCaptureDelegate {
             return
         }
         
-        self.photoData = imageData
+        // Очищаем данные после использования
+        defer {
+            photoData = nil
+        }
         
         if let image = UIImage(data: imageData) {
             completion(image)
