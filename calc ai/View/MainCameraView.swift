@@ -18,7 +18,7 @@ struct CameraPreview: UIViewRepresentable {
         let view = PreviewView()
         view.videoPreviewLayer.session = captureSession
         view.videoPreviewLayer.videoGravity = .resizeAspectFill
-        view.videoPreviewLayer.connection?.videoOrientation = .portrait
+        view.videoPreviewLayer.connection?.videoRotationAngle = 90
         return view
     }
     
@@ -65,7 +65,7 @@ struct CameraLeftButton: View {
                          isActive: $navigateToParser)
             
             Button(action: { showingImagePicker = true }) {
-                if let image = galleryVM.lastImage {
+    if let image = galleryVM.lastImage {
                     Image(uiImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
