@@ -110,7 +110,7 @@ class TextRecognizerViewModel: ObservableObject {
                 let boundingBox = CGRect(
                     x: box.topLeft.x * imageSize.width,
                     y: (1 - box.topLeft.y) * imageSize.height,
-                    width: (box.topRight.x - box.topLeft.x) * imageSize.width + 20, // TODO: ... точки появляются, когда текст не влазит в рамку
+                    width: (box.topRight.x - box.topLeft.x) * imageSize.width,
                     height: (box.topLeft.y - box.bottomLeft.y) * imageSize.height
                 )
                 boxes.append(NumberBox(number: numberString, boundingBox: boundingBox))
