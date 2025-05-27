@@ -36,7 +36,7 @@ struct PhotoParserView: View {
 
                         // Calculator Operation Buttons
                         HStack(spacing: 12) {
-                            ForEach([Buttons.plus, Buttons.minus, Buttons.multiple, Buttons.divide, Buttons.clear], id: \.self) { button in
+                            ForEach([Buttons.plus, Buttons.minus, Buttons.multiple, Buttons.divide, Buttons.back], id: \.self) { button in
                                 Button {
                                     viewModel.handleOperation(button)
                                 } label: {

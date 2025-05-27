@@ -35,8 +35,8 @@ class TextRecognizerViewModel: ObservableObject {
                 // Don't reset selectedNumbersSum when switching operations
             }
 
-        case .clear:
-            // AC just resets the selected numbers, not the operation
+        case .back:
+            // Back just resets the selected numbers, not the operation
             // Deselect all number boxes
             for index in 0..<numberBoxes.count {
                 if numberBoxes[index].isSelected {

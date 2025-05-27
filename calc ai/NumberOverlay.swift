@@ -34,8 +34,10 @@ struct NumberOverlay: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(Color.black.opacity(0))
                     .background(box.isSelected ? Color.black.opacity(0.25) : Color(red: 217/255, green: 217/255, blue: 217/255).opacity(0.5))
-                    .cornerRadius(3)
-                    .border(box.isSelected ? Color.black : Color(red: 159/255, green: 159/255, blue: 159/255))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2)
+                            .stroke(box.isSelected ? Color.black : Color(red: 159/255, green: 159/255, blue: 159/255), lineWidth: 1)
+                    )
                     .position(x: convertedRect.midX, y: convertedRect.midY)
                     .onTapGesture { // Add this modifier
                         onNumberTap(box.id)
