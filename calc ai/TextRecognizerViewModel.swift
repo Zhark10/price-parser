@@ -51,9 +51,40 @@ class TextRecognizerViewModel: ObservableObject {
         }
     }
 
-    // MARK: Text Recognition Methods
+    private func resizeImage(_ image: UIImage, targetSizeKB: Int = 300) -> UIImage {
+        let targetSizeBytes = targetSizeKB * 1024
+        var compression: CGFloat = 1.0
+        var imageData = image.jpegData(compressionQuality: compression)!
+        
+        while imageData.count > targetSizeBytes && compression > 0.1 {
+            compression -= 0.1
+            imageData = image.jpegData(compressionQuality: compression)!
+        }
+        
+        let maxDimension: CGFloat = 1500.0 // Максимальный размер стороны изображения
+        var newSize = image.size
+        
+        if image.size.width > maxDimension || image.size.height > maxDimension {
+            let ratio = image.size.width / image.size.height
+            if ratio > 1 {
+                newSize = CGSize(width: maxDimension, height: maxDimension / ratio)
+            } else {
+                newSize = CGSize(width: maxDimension * ratio, height: maxDimension)
+            }
+        }
+        
+        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let resizedImage = renderer.image { context in
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+        
+        return resizedImage
+    }
+    
     func recognizeText(in image: UIImage) {
-        guard let cgImage = image.cgImage else {
+        let optimizedImage = resizeImage(image)
+        
+        guard let cgImage = optimizedImage.cgImage else {
             errorMessage = "Failed to process image"
             return
         }
